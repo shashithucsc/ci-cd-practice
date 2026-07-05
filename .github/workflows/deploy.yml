@@ -1,0 +1,62 @@
+name: Deploy Next.js Portfolio
+
+on:
+  push:
+    branches:
+      - main # This triggers the pipeline every time you push to the main branch
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    # Grants GitHub Actions permission to upload the Docker image
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Tags the image with your repository name
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to DigitalOcean Droplet
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          # We will set these secret keys up in Phase 2
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            # Log the server into GitHub to download the image
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+            
+            # Download the fresh code
+            docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+            
+            # Stop and remove the old version (if it exists)
+            docker stop portfolio || true
+            docker rm portfolio || true
+            
+            # Run the new version on port 80 (standard HTTP port)
+            docker run -d --name portfolio -p 80:3000 ghcr.io/${{ env.IMAGE_NAME }}:latest
