@@ -1,0 +1,217 @@
+'use client';
+
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { HiMenu, HiX } from 'react-icons/hi';
+
+const navLinks = [
+  { name: 'Home', href: '#home', type: 'hash' },
+  { name: 'About', href: '#about', type: 'hash' },
+  { name: 'Projects', href: '#projects', type: 'hash' },
+  // { name: 'Skills', href: '#skills', type: 'hash' },
+  // { name: 'Education', href: '#education', type: 'hash' },
+  { name: 'Notes', href: '/notes', type: 'page' },
+  { name: 'Contact', href: '#contact', type: 'hash' },
+];
+
+export default function Navbar() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  const pathname = usePathname();
+  const { scrollY } = useScroll();
+  
+  const backgroundColor = useTransform(
+    scrollY,
+    [0, 100],
+    ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.5)']
+  );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = navLinks.filter(link => link.type === 'hash').map(link => link.href.substring(1));
+      const currentSection = sections.find(section => {
+        const element = document.getElementById(section);
+        if (element) {
+          const rect = element.getBoundingClientRect();
+          return rect.top <= 100 && rect.bottom >= 100;
+        }
+        return false;
+      });
+      if (currentSection) setActiveSection(currentSection);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const isLinkActive = (link: typeof navLinks[0]) => {
+    if (link.type === 'page') {
+      return pathname === link.href;
+    }
+    return activeSection === link.href.substring(1);
+  };
+
+  // Get correct href based on current page
+  const getHref = (link: typeof navLinks[0]) => {
+    if (link.type === 'page') {
+      return link.href;
+    }
+    // For hash links: if not on homepage, prepend '/' to navigate to homepage section
+    return pathname === '/' ? link.href : `/${link.href}`;
+  };
+
+  return (
+    <>
+      <motion.nav
+        style={{ backgroundColor }}
+        className="fixed top-0 left-0 right-0 z-40 backdrop-blur-xl border-b border-white/10"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3"
+            >
+              <Link href="/" className="flex items-center gap-3 group">
+                <motion.div whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
+                  {/* Animated border ring */}
+                  <div className="relative flex-shrink-0">
+                    <motion.div
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-75 blur-md"
+                      animate={{
+                        rotate: [0, 360],
+                      }}
+                      transition={{
+                        duration: 8,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                    />
+                    <div className="relative px-4 py-2 rounded-xl border border-white/10 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-sm">
+                      <span className="text-2xl md:text-3xl font-bold text-indigo-400">
+                        SR
+                      </span>
+                    </div>
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-sm md:text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">
+                      Shashith Rashmika
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Full Stack Developer
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            </motion.div>
+
+            {/* Desktop Navigation */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="hidden md:flex items-center space-x-1"
+            >
+              {navLinks.map((link, index) => {
+                // Use Link for all navigation to support both page and hash navigation
+                const isActive = isLinkActive(link);
+                const href = getHref(link);
+                
+                return (
+                  <motion.div key={link.name}>
+                    <Link
+                      href={href}
+                      className={`relative px-4 py-2 rounded-lg transition-all block ${
+                        isActive
+                          ? 'text-white'
+                          : 'text-gray-300 hover:text-white'
+                      }`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeNav"
+                          className="absolute inset-0 glass rounded-lg"
+                          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10">{link.name}</span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-3 rounded-full glass hover:glow-primary transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Toggle menu"
+              >
+                {isMenuOpen ? (
+                  <HiX className="w-6 h-6" />
+                ) : (
+                  <HiMenu className="w-6 h-6" />
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.nav>
+
+      {/* Mobile Menu Drawer */}
+      <motion.div
+        initial={false}
+        animate={{
+          x: isMenuOpen ? 0 : '100%',
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="fixed top-0 right-0 bottom-0 w-72 sm:w-80 glass-strong z-50 md:hidden border-l border-white/10 safe-area-inset"
+      >
+        <div className="flex flex-col h-full p-6 pt-24 pb-safe">
+          {navLinks.map((link, index) => {
+            const isActive = isLinkActive(link);
+            const href = getHref(link);
+            
+            return (
+              <motion.div
+                key={link.name}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: isMenuOpen ? 1 : 0, x: isMenuOpen ? 0 : 50 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Link
+                  href={href}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`py-4 px-5 rounded-lg mb-2 transition-all min-h-[48px] flex items-center ${
+                    isActive
+                      ? 'glass text-white glow-primary'
+                      : 'text-gray-300 hover:glass hover:text-white'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* Mobile Menu Overlay */}
+      {isMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsMenuOpen(false)}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+        />
+      )}
+    </>
+  );
+}
