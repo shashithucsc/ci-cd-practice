@@ -160,7 +160,7 @@ export default function HeroSection() {
             >
               <p className="text-indigo-400 text-base md:text-lg lg:text-xl font-medium mb-1 md:mb-2">Hello, I&apos;m</p>
               <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-2 md:mb-4 leading-tight">
-                <span className="text-white">Shashith Rashmika ucsc</span>
+                <span className="text-white">Shashith Rashmika</span>
               </h1>
             </motion.div>
 
